@@ -297,6 +297,52 @@ class SpeechModuleServer(BaseModuleServer):
                     status.HTTP_500_INTERNAL_SERVER_ERROR, "internal_error", str(e)
                 )
 
+        @self._app.get("/voice_profile/available")
+        async def voice_profile_available() -> dict[str, Any]:
+            """Return whether a voice profile is enrolled."""
+            try:
+                from modules.speech.calibration.voice_profile import (
+                    is_voice_profile_available,
+                )
+
+                available = (
+                    self._settings_repo is not None
+                    and is_voice_profile_available(self._settings_repo)
+                )
+                return {"available": available}
+            except Exception as e:
+                logger.debug("Voice profile available check failed: %s", e)
+                return {"available": False}
+
+        @self._app.get("/voices")
+        async def voices() -> dict[str, Any]:
+            """Return available TTS voices with gender for UI."""
+            try:
+                from modules.speech.tts.say_engine import (
+                    get_available_voices_with_gender,
+                )
+
+                voices_list = get_available_voices_with_gender()
+                if not voices_list:
+                    voices_list = [
+                        {"name": "Daniel", "gender": "male"},
+                        {"name": "Alex", "gender": "male"},
+                        {"name": "Fred", "gender": "male"},
+                        {"name": "Samantha", "gender": "female"},
+                        {"name": "Karen", "gender": "female"},
+                        {"name": "Victoria", "gender": "female"},
+                    ]
+                return {"voices": voices_list}
+            except Exception as e:
+                logger.debug("Voices list failed: %s", e)
+                return {
+                    "voices": [
+                        {"name": "Daniel", "gender": "male"},
+                        {"name": "Alex", "gender": "male"},
+                        {"name": "Samantha", "gender": "female"},
+                    ]
+                }
+
     async def startup(self) -> None:
         """Initialize speech components on startup. Speaker filter uses voice profile when configured."""
         await super().startup()
@@ -359,7 +405,8 @@ def main() -> None:
 
     config = load_config()
 
-    # Load settings repo if available
+    # Load settings repo if available (optional: only when run in talkie-core's tree).
+    # Standalone: run with settings_repo=None or receive settings via API.
     settings_repo = None
     try:
         from persistence.database import get_connection

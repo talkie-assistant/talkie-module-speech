@@ -1,0 +1,10 @@
+---
+description: Module self-containment; no imports from talkie-core app, llm, or persistence
+alwaysApply: true
+---
+
+# Modular design (speech module)
+
+This repo is a **module**. It must be self-contained: only use the **SDK** (and its own code). Do **not** import from `app`, `llm`, or `persistence` of talkie-core. When the module runs as a standalone server, config and settings must be obtained via the module's own config file or API, not by importing core's persistence or LLM. Intent parsing (LLM) and shared DB are core's responsibility; the module exposes an HTTP API that core calls.
+
+Exception: when the server is run from within talkie-core's tree (e.g. for development), it may optionally use core's persistence for settings; if persistence is unavailable, the server runs with `settings_repo=None` and voice/settings are not persisted. For full standalone use, the module should receive settings via API or run without persisted settings.
